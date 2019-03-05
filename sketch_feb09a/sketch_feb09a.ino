@@ -25,7 +25,7 @@ const float z_absolute = -28;
 /* Constants for movement ----------------------------------------------------*/
 const float z_default = -50, z_up = -30, z_boot = z_absolute;
 const float x_default = 62, x_offset = 0;
-const float y_start = 0, y_step = 40;
+const float y_start = 0, y_step = 20;
 const float y_default = x_default;
 /* Переменные для движений ----------------------------------------------------*/
 volatile float site_now[4][3];    //real-time coordinates of the end of each leg
@@ -117,7 +117,8 @@ void setup()
   stand();
   _delay_us(1000);
   step_forward(5);
-//  _delay_us(1000);
+  _delay_us(1000);
+  turn_left(5);
 //  hand_wave(3);
 //  delay(1000);
 //  hand_shake(3);
