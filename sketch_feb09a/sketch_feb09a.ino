@@ -5,14 +5,20 @@
 #include <Ultrasonic.h>
 #include <CyberLib.h>
 #include <dht11.h> 
-//#include "Ai_WS2811.h"
+#include <FastLED.h>
 
+#define NUM_LEDS 3
+#define buzzer 4
+#define DHT11_PIN 5
+#define echo 8
+#define trig 9
+#define led 10
 
 iarduino_MultiServo MSS; 
 iarduino_OLED_txt myOLED(0x78);
-Ultrasonic ultrasonic(9, 8);    // Trig - 9, Echo - 8 
-dht11 DHT;                      // Объявление переменной класса dht11
-//Ai_WS2811 ws2811;
+Ultrasonic ultrasonic(trig, echo);    // Trig - 9, Echo - 8 
+dht11 DHT;                            // Объявление переменной класса dht11
+CRGB leds[NUM_LEDS];
 
 // Пины на модуле для сервоприводов от 1 до 4 ноги
 //const int servo_pin[4][3] = {{4, 5, 6}, {12, 13, 14}, {0, 1, 2}, {8, 9, 10}};/* Size of the robot ---------------------------------------------------------*/
@@ -67,9 +73,6 @@ float dist_cm = 0;
 byte a = 0x00, b = 0xff;
 unsigned long wait_time = 0, wait_timer = 0;
 #define wait_interval 5000
-#define DHT11_PIN 5
-#define buzzer 4
-#define DATA_PIN 8
 
 /* ---------------------------------------------------------------------------*/
 
@@ -80,7 +83,8 @@ void setup()
   myOLED.begin();                                    // Инициируем работу с дисплеем.
   myOLED.setFont(SmallFontRus);
 
-  //ws2811.init(DATA_PIN);
+  FastLED.addLeds<WS2811, led, GRB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.setBrightness(50);
   
   MSS.servoSet(0, SERVO_SG90);   
   MSS.servoSet(1, SERVO_SG90);   
@@ -114,16 +118,11 @@ void setup()
   //start servo service
   FlexiTimer2::set(20, servo_service);
   FlexiTimer2::start();
+  //CRGB(255, 100, 255);
+  //FastLED.show();
   stand();
   _delay_us(1000);
   step_forward(5);
-  //_delay_us(1000);
- // turn_left(5);
-//  hand_wave(3);
-//  delay(1000);
-//  hand_shake(3);
-  //ws2811.setColor(a,a,b);
-  //sendLEDs();
   /*
   _delay_us(1000);
   step_forward(10);
@@ -155,7 +154,7 @@ void setup()
 
 void loop() 
 {
-
+  if(!status) sit();  
   char input;
   if(Serial.available() > 0){
     input = Serial.read();
@@ -195,16 +194,6 @@ void loop()
   
 }
 /*
-void sendLEDs()
-{
-  cli();
-  for (byte i = 0; i < 1; i++) {
-    ws2811.send();
-  }
-  sei();
-}
-*/
-/*
   - Функция аналог map только для float
    ---------------------------------------------------------------------------*/
 float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
@@ -231,6 +220,7 @@ void sit(void)
   status = false;
   move_speed = stand_seat_speed;
   for(int leg = 0; leg < 4; leg++){
+    Serial.println("test");
     set_site(leg, KEEP, KEEP, z_boot);
   }
   wait_all_reach();
@@ -657,7 +647,7 @@ void servo_service(void)
 {
   sei();
   static float alpha, beta, gamma;
-  //if(!status) stand();
+  if(!status) stand();
   for(int i = 0; i < 4; i++){
     for(int j = 0; j < 3; j++){
       if(abs(site_now[i][j] - site_expect[i][j]) >= abs(temp_speed[i][j]))
@@ -689,11 +679,14 @@ void servo_service(void)
     myOLED.print("Влага: ", 0, 5);
     myOLED.print(DHT.humidity, 40, 5);
   }
+  //Serial.println(millis() - wait_timer);
   // Спящий режим
-//  if (wait_time - wait_timer > wait_interval && status == true){
-//    wait_timer = wait_time;
-//    sit();
-//  }
+  if (millis() - wait_timer > wait_interval && status == true){
+    //Serial.println("sit");
+    //sit();
+    status = false;
+    wait_timer = wait_time;
+  }
 }
 
 /*
@@ -725,7 +718,7 @@ void set_site(int leg, float x, float y, float z)
   if(z != KEEP)
     site_expect[leg][2] = z;
 
-  wait_time = millis();
+  wait_timer = millis();
 }
 
 /*
