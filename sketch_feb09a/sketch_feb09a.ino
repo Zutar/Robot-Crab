@@ -13,6 +13,7 @@
 #define echo 8
 #define trig 9
 #define led 10
+#define oled_interval 5000 // Частота обновления oled дисплея
 
 iarduino_MultiServo MSS; 
 iarduino_OLED_txt myOLED(0x78);
@@ -63,7 +64,6 @@ const int voltInPin = A0;  // Analog input pin
 float volt = 0;
 unsigned long time = 0, timer = 0;
 /* Переменные связаные с lcd ---------------------------------------------------------------------------*/
-#define oled_interval 5000 // 5 сек.
 extern uint8_t SmallFontRus[];
 //extern uint8_t MediumFontRus[];
 /* Остальное ---------------------------------------------------------------------------*/
@@ -122,39 +122,19 @@ void setup()
   //FastLED.show();
   stand();
   _delay_us(1000);
-  step_forward(5);
-  /*
-  _delay_us(1000);
-  step_forward(10);
-  _delay_us(1000);
-  turn_right(5);
-  _delay_us(1000);
-  step_back(5);
-  _delay_us(1000);
-  hand_wave(3);
-  _delay_us(1000);
-  turn_left(10);
-  _delay_us(1000);
-  step_forward(10);
-  _delay_us(1000);
-  hand_shake(3);
-  _delay_us(1000);     
-  turn_right(5);
-  _delay_us(1000); 
-  step_forward(3);
-  _delay_us(1000); 
-  turn_right(5);
-  _delay_us(1000); 
-  step_forward(10);
-  _delay_us(1000); 
-  sit();
-  _delay_us(5000);
-  */
 }
 
 void loop() 
 {
-  if(!status) sit();  
+    Serial.println(millis() - wait_timer);
+ /*
+  // Спящий режим
+  if (millis() - wait_timer > wait_interval && status == true){
+    status = false;
+    if(!status) sit();
+    //wait_timer = wait_time;
+  }
+  */
   char input;
   if(Serial.available() > 0){
     input = Serial.read();
@@ -217,13 +197,12 @@ float get_volt() {
 
 void sit(void)
 {
-  status = false;
   move_speed = stand_seat_speed;
   for(int leg = 0; leg < 4; leg++){
-    Serial.println("test");
     set_site(leg, KEEP, KEEP, z_boot);
   }
   wait_all_reach();
+  status = false;
 }
 /*
   - stand
@@ -231,6 +210,7 @@ void sit(void)
    ---------------------------------------------------------------------------*/
 void stand(void)
 {
+  Serial.println("stand");
   status = true;
   wait_time = 0, wait_timer = 0;
   move_speed = stand_seat_speed;
@@ -647,7 +627,7 @@ void servo_service(void)
 {
   sei();
   static float alpha, beta, gamma;
-  if(!status) stand();
+  //if(!status) stand();
   for(int i = 0; i < 4; i++){
     for(int j = 0; j < 3; j++){
       if(abs(site_now[i][j] - site_expect[i][j]) >= abs(temp_speed[i][j]))
@@ -678,14 +658,6 @@ void servo_service(void)
     myOLED.print(DHT.temperature, 15, 3);
     myOLED.print("Влага: ", 0, 5);
     myOLED.print(DHT.humidity, 40, 5);
-  }
-  //Serial.println(millis() - wait_timer);
-  // Спящий режим
-  if (millis() - wait_timer > wait_interval && status == true){
-    //Serial.println("sit");
-    //sit();
-    status = false;
-    wait_timer = wait_time;
   }
 }
 
@@ -718,7 +690,7 @@ void set_site(int leg, float x, float y, float z)
   if(z != KEEP)
     site_expect[leg][2] = z;
 
-  wait_timer = millis();
+  if(status) wait_timer = millis();
 }
 
 /*
