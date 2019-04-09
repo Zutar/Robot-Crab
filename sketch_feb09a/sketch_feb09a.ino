@@ -72,7 +72,7 @@ int distance = 30;
 float dist_cm = 0;
 byte a = 0x00, b = 0xff;
 unsigned long wait_time = 0, wait_timer = 0;
-#define wait_interval 5000
+#define wait_interval 30000
 
 /* ---------------------------------------------------------------------------*/
 
@@ -126,19 +126,17 @@ void setup()
 
 void loop() 
 {
-    Serial.println(millis() - wait_timer);
- /*
   // Спящий режим
   if (millis() - wait_timer > wait_interval && status == true){
     status = false;
     if(!status) sit();
     //wait_timer = wait_time;
   }
-  */
+  
   char input;
   if(Serial.available() > 0){
     input = Serial.read();
-    Serial.println(input);
+    //Serial.println(input);
     if (input == 'f'){
       step_forward(1);
     } else if (input == 'b'){
@@ -628,6 +626,7 @@ void servo_service(void)
   sei();
   static float alpha, beta, gamma;
   //if(!status) stand();
+  Serial.println(status);
   for(int i = 0; i < 4; i++){
     for(int j = 0; j < 3; j++){
       if(abs(site_now[i][j] - site_expect[i][j]) >= abs(temp_speed[i][j]))
@@ -689,7 +688,7 @@ void set_site(int leg, float x, float y, float z)
     site_expect[leg][1] = y;
   if(z != KEEP)
     site_expect[leg][2] = z;
-
+    
   if(status) wait_timer = millis();
 }
 
